@@ -1,3 +1,4 @@
+#! /usr/bin/python
 '''
 Coursera:
 - Software Defined Networking (SDN) course
@@ -26,16 +27,26 @@ policyFile = "%s/pox/pox/misc/firewall-policies.csv" % os.environ[ 'HOME' ]
 
 
 class Firewall (EventMixin):
+    _rule_prio = 0x7000
 
     def __init__ (self):
         self.listenTo(core.openflow)
-        log.debug("Enabling Firewall Module")
+        log.debug("Enabling Firewall Module")	
+
+    def install_drop_all_rule (self, event):
+        log.info("dropping all traffic !!")
+        msg = of.ofp_flow_mod()
+        msg.idle_timeout = 10000
+        msg.hard_timeout = 10000
+        msg.priority = self._rule_prio
+        event.connection.send(msg)
+    
+    def install_firewall_rules (self):
+        ''' TODO: parse file '''
 
     def _handle_ConnectionUp (self, event):    
         ''' Add your logic here ... '''
-        
-
-    
+        self.install_drop_all_rule(event)
         log.debug("Firewall rules installed on %s", dpidToStr(event.dpid))
 
 def launch ():
