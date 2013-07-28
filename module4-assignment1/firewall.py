@@ -16,7 +16,7 @@ from pox.lib.addresses import EthAddr
 from collections import namedtuple
 import os
 ''' Add your imports here ... '''
-
+import csv
 
 
 log = core.getLogger()
@@ -33,20 +33,21 @@ class Firewall (EventMixin):
         self.listenTo(core.openflow)
         log.debug("Enabling Firewall Module")	
 
-    def install_drop_all_rule (self, event):
-        log.info("dropping all traffic !!")
-        msg = of.ofp_flow_mod()
-        msg.idle_timeout = 10000
-        msg.hard_timeout = 10000
-        msg.priority = self._rule_prio
-        event.connection.send(msg)
-    
-    def install_firewall_rules (self):
-        ''' TODO: parse file '''
-
+    def install_firewall_rules (self, event):
+	datafile = open(policyFile, 'rb')
+	datareader = csv.reader(datafile)
+	datafile.readline() # skip the first line
+	for row in datareader:
+	    log.debug("installing %s -> %s" % (row[1], row[2]))
+            msg = of.ofp_flow_mod()
+	    msg.match.dl_src = EthAddr(row[1])
+	    msg.match.dl_dst = EthAddr(row[2])
+            msg.priority = self._rule_prio
+            event.connection.send(msg)
+	
     def _handle_ConnectionUp (self, event):    
         ''' Add your logic here ... '''
-        self.install_drop_all_rule(event)
+	self.install_firewall_rules(event)
         log.debug("Firewall rules installed on %s", dpidToStr(event.dpid))
 
 def launch ():
